@@ -4,9 +4,7 @@ from .empleado import Empleado
 
 
 class Departamento:
-    """Representa un departamento de la empresa y sus empleados."""
-
-    def __init__(self, id_departamento: int, nombre: str, gerente: str, empleados: List[Empleado] = None):
+    def __init__(self, id_departamento: int | None, nombre: str, gerente: str, empleados: List[Empleado] = None):
         self.id_departamento = id_departamento
         self.nombre = nombre
         self.gerente = gerente

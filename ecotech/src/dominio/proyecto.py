@@ -5,11 +5,9 @@ from .empleado import Empleado
 
 
 class Proyecto:
-    """Representa un proyecto de la empresa y los empleados asignados a él."""
-
     def __init__(
         self,
-        id_proyecto: int,
+        id_proyecto: int | None,
         nombre: str,
         descripcion: str,
         fecha_inicio: date,

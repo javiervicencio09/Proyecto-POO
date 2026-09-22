@@ -3,11 +3,9 @@ from typing import Optional
 
 
 class Empleado:
-    """Representa a un empleado dentro de la empresa."""
-
     def __init__(
         self,
-        id_empleado: int,
+        id_empleado: Optional[int],
         nombre: str,
         cargo: str,
         salario: float,
