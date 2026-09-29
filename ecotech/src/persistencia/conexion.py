@@ -1,7 +1,6 @@
 import os
 import sqlite3
 
-import pymysql
 from dotenv import load_dotenv
 
 
@@ -19,6 +18,8 @@ def abrir_conexion():
         return sqlite3.connect(os.getenv("DB_NAME", "ecotech.db"))
 
     if motor == "mysql":
+        import pymysql
+
         return pymysql.connect(
             host=os.getenv("DB_HOST", "localhost"),
             port=int(os.getenv("DB_PORT", "3307")),
