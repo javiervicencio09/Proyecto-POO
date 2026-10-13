@@ -12,50 +12,36 @@ Sistema de gestion empresarial orientado a objetos desarrollado en Python para l
 ---
 
 ## 2. Requisitos Previos
-* **Python 3.10** o superior instalado en el sistema.
-* **Git for Windows (Git Bash)** instalado.
-* *(Opcional)* **WampServer** (con el servicio MySQL activo en el puerto 3306 o 3307) si se desea persistencia en MySQL.
+* **Python 3.10** o superior.
+* **WampServer** (con el servicio MySQL activo en el puerto 3306 o 3307).
 
 ---
 
-## 3. Guia de Instalacion y Puesta en Marcha en Git Bash
+## 3. Instalacion y Puesta en Marcha
 
-Sigue estos pasos en tu terminal **Git Bash**:
-
-### Paso 1: Abrir Git Bash y ubicarse en la raiz del proyecto
-Navega a la carpeta principal del proyecto:
-```bash
-cd "/c/Users/javie/OneDrive/Escritorio/Poo/Proyecto-POO"
+### Paso 1: Clonar o posicionarse en la carpeta del proyecto
+Abrir una terminal en la raiz o en la carpeta `ecotech/`:
+```powershell
+cd ecotech
 ```
-> **Nota:** Puedes comprobar que estas en el directorio correcto ejecutando `pwd` y verificando que veas archivos como `main.py` y `requirements.txt`.
 
-### Paso 2: Crear el entorno virtual
-Crea un entorno virtual aislado llamado `venv`:
-```bash
+### Paso 2: Crear y activar el entorno virtual
+```powershell
 python -m venv venv
+.\venv\Scripts\Activate.ps1
 ```
-*(Si en tu sistema el comando principal es el lanzador de Python para Windows, tambien puedes usar: `py -m venv venv`)*.
 
-### Paso 3: Activar el entorno virtual
-En Git Bash, la activacion del entorno se realiza con el comando `source`:
-```bash
-source venv/Scripts/activate
-```
-> **Confirmacion visual:** Una vez ejecutado, observaras el prefijo `(venv)` al inicio de tu prompt en la terminal, lo que indica que el entorno esta activo.
-
-### Paso 4: Instalar las dependencias
-Instala las librerias requeridas (`PyMySQL` y `python-dotenv`) ejecutando:
-```bash
+### Paso 3: Instalar dependencias
+```powershell
 pip install -r requirements.txt
 ```
 
-### Paso 5: Configuracion de Base de Datos (.env)
-El proyecto incluye un archivo de plantilla en `ecotech/.env.example`. Si aun no existe el archivo `.env`, copialo con:
-```bash
-cp ecotech/.env.example ecotech/.env
+### Paso 4: Configuracion de Base de Datos (.env)
+Copiar el archivo de plantilla `.env.example` a `.env`:
+```powershell
+Copy-Item .env.example .env
 ```
-
-Para conectar a **WampServer (MySQL)**, confirma que el archivo `ecotech/.env` contenga:
+Para conectar a WampServer, verificar que `.env` contenga:
 ```env
 DB_ENGINE=mysql
 DB_HOST=localhost
@@ -64,19 +50,17 @@ DB_USER=root
 DB_PASSWORD=
 DB_NAME=ecotech
 ```
-> **Nota importante:** Si no cuentas con WampServer o MySQL encendido, el sistema cambiara de forma automatica a **SQLite local** (`ecotech.db`) sin interrumpir la ejecucion.
+*(Nota: Si no se configura MySQL, el sistema funciona de manera local con SQLite por defecto).*
 
 ---
 
 ## 4. Ejecucion de la Aplicacion
 
-Con el entorno virtual activado `(venv)`, ejecuta la aplicacion desde la raiz:
-
-### Modo Interactivo (Menu Principal por Consola):
-```bash
+### Modo Interactivo (Menu CRUD por Consola):
+```powershell
 python main.py
 ```
-Desplegara el menu interactivo del sistema:
+Desplegara el menu principal interactivo:
 * `[1] Gestion de Empleados`: Registrar, listar, buscar, modificar salario y eliminar.
 * `[2] Gestion de Departamentos`: Crear, listar, asociar gerente y asignar empleados.
 * `[3] Gestion de Proyectos`: Crear, listar, consultar personal y horas acumuladas.
@@ -86,26 +70,16 @@ Desplegara el menu interactivo del sistema:
 * `[0] Salir del Sistema`.
 
 ### Modo Demostracion Rapida:
-Para ejecutar un flujo de demostracion automatizado:
-```bash
+```powershell
 python main.py --demo
-```
-
-### Desactivar el Entorno Virtual:
-Cuando finalices tu sesion de trabajo, desactiva el entorno con:
-```bash
-deactivate
 ```
 
 ---
 
-## 5. Ejecucion de Pruebas Automatizadas (Unit Tests)
-
-Para correr la suite de pruebas unitarias que validan la logica de negocio y persistencia:
-```bash
-cd ecotech
+## 5. Ejecucion de Pruebas Automatizadas
+Para verificar la integridad de la logica orientada a objetos y la persistencia:
+```powershell
 python -m unittest discover -s tests
-cd ..
 ```
 
 ---
@@ -116,3 +90,5 @@ cd ..
 * `src/servicios/`: Logica de control y menu interactivo CLI con validacion de entradas.
 * `docs/`: Diagrama UML (`uml_grupal.png`).
 
+## Diagrama de Clases (UML)
+![Diagrama UML EcoTech](diagrama_uml.jpeg)
