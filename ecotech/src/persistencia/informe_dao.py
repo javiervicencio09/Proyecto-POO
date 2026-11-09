@@ -13,7 +13,7 @@ class InformeDAO:
     def guardar(self, informe: Informe) -> int:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         fecha_str = str(informe.fecha_generacion) if informe.fecha_generacion else None
         try:
             cursor.execute(
@@ -34,7 +34,7 @@ class InformeDAO:
     def buscar_por_id(self, id_informe: int) -> Optional[Informe]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT id_informe, tipo, fecha_generacion, contenido, creado_por "
@@ -79,7 +79,7 @@ class InformeDAO:
     def eliminar(self, id_informe: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(f"DELETE FROM informe WHERE id_informe = {p}", (id_informe,))
             conexion.commit()

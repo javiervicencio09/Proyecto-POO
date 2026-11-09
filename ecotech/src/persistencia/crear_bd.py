@@ -1,4 +1,5 @@
 import logging
+import sqlite3
 from src.persistencia.conexion import abrir_conexion, obtener_motor
 
 logger = logging.getLogger(__name__)
@@ -12,9 +13,9 @@ def crear_tablas() -> None:
     """
     conexion = abrir_conexion()
     cursor = conexion.cursor()
-    motor = obtener_motor()
+    es_sqlite = isinstance(conexion, sqlite3.Connection)
 
-    if motor == "sqlite":
+    if es_sqlite:
         sentencias = [
             """
             CREATE TABLE IF NOT EXISTS usuario (
@@ -200,7 +201,7 @@ def crear_tablas() -> None:
             cursor.execute(sql)
 
         # Migración automática si la tabla empleado o departamento ya existían sin nuevas columnas
-        if motor == "sqlite":
+        if es_sqlite:
             cursor.execute("PRAGMA table_info(empleado);")
             columnas_empleado = [col[1] for col in cursor.fetchall()]
             if "id_usuario" not in columnas_empleado:

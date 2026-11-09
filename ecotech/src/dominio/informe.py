@@ -1,5 +1,8 @@
 from datetime import date
+import os
 from typing import Any, Dict, Optional
+
+from src.seguridad.validador import sanitizar_nombre_archivo
 
 
 class Informe:
@@ -45,10 +48,12 @@ class Informe:
         """
         Método definido en el UML (+ exportar).
         Exporta el informe a un archivo o retorna el texto estructurado para persistir.
+        Aplica sanitización de nombres de archivo para prevenir Path Traversal (Criterio 3.1.2).
         """
         texto_exportable = self.contenido or self.generar()
         if ruta_archivo:
-            with open(ruta_archivo, "w", encoding="utf-8") as f:
+            nombre_seguro = sanitizar_nombre_archivo(ruta_archivo, extensiones_permitidas=(".txt", ".log", ".json"))
+            with open(nombre_seguro, "w", encoding="utf-8") as f:
                 f.write(texto_exportable)
         return texto_exportable
 

@@ -14,7 +14,7 @@ class RegistroTiempoDAO:
     def guardar(self, registro: RegistroDeTiempo) -> int:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         fecha_str = str(registro.fecha) if registro.fecha else None
         try:
             cursor.execute(
@@ -41,7 +41,7 @@ class RegistroTiempoDAO:
     def buscar_por_id(self, id_registro: int) -> Optional[RegistroDeTiempo]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT id_registro, fecha, horas, descripcion_tareas, id_empleado, id_proyecto "
@@ -94,7 +94,7 @@ class RegistroTiempoDAO:
     def listar_por_empleado(self, id_empleado: int) -> List[RegistroDeTiempo]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT id_registro, fecha, horas, descripcion_tareas, id_empleado, id_proyecto "
@@ -121,7 +121,7 @@ class RegistroTiempoDAO:
     def listar_por_proyecto(self, id_proyecto: int) -> List[RegistroDeTiempo]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT id_registro, fecha, horas, descripcion_tareas, id_empleado, id_proyecto "
@@ -152,7 +152,7 @@ class RegistroTiempoDAO:
     def eliminar(self, id_registro: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(f"DELETE FROM registro_tiempo WHERE id_registro = {p}", (id_registro,))
             conexion.commit()

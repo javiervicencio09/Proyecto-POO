@@ -1,16 +1,20 @@
 from datetime import date, datetime
-from typing import Optional, Union
+import sqlite3
+from typing import Any, Optional, Union
 
+from src.excepciones import DAOError
 from src.persistencia.conexion import obtener_motor
 
 
-class DAOError(Exception):
-    """Excepción base para operaciones fallidas en la capa de persistencia."""
-    pass
-
-
-def marcador() -> str:
-    """Retorna el marcador de parámetros adecuado según el motor SQL ('%s' o '?')."""
+def marcador(conexion: Optional[Any] = None) -> str:
+    """
+    Retorna el marcador de parámetros adecuado ('%s' o '?').
+    Si se suministra una conexión activa, detecta con exactitud si es SQLite o MySQL.
+    """
+    if conexion is not None:
+        if isinstance(conexion, sqlite3.Connection):
+            return "?"
+        return "%s"
     return "%s" if obtener_motor() == "mysql" else "?"
 
 

@@ -13,7 +13,7 @@ class EmpleadoDAO:
     def guardar(self, empleado: Empleado) -> int:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         fecha_str = str(empleado.fecha_inicio_contrato) if empleado.fecha_inicio_contrato else None
         try:
             cursor.execute(
@@ -43,7 +43,7 @@ class EmpleadoDAO:
     def buscar_por_id(self, id_empleado: int) -> Optional[Empleado]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT id_empleado, nombre, cargo, salario, direccion, telefono, correo, fecha_inicio_contrato "
@@ -101,7 +101,7 @@ class EmpleadoDAO:
     def actualizar(self, empleado: Empleado) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         fecha_str = str(empleado.fecha_inicio_contrato) if empleado.fecha_inicio_contrato else None
         try:
             cursor.execute(
@@ -131,7 +131,7 @@ class EmpleadoDAO:
     def eliminar(self, id_empleado: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(f"DELETE FROM empleado WHERE id_empleado = {p}", (id_empleado,))
             conexion.commit()

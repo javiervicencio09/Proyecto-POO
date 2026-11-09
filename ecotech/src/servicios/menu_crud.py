@@ -1,3 +1,4 @@
+import math
 import sys
 from datetime import date
 from typing import Optional
@@ -11,9 +12,16 @@ from src.dominio import (
     RegistroDeTiempo,
     Usuario,
 )
-from src.persistencia import (
+from src.excepciones import (
+    AutenticacionError,
+    AutorizacionError,
     ConexionError,
     DAOError,
+    EcoTechError,
+    ServicioExternoError,
+    ValidacionError,
+)
+from src.persistencia import (
     DepartamentoDAO,
     EmpleadoDAO,
     InformeDAO,
@@ -23,19 +31,37 @@ from src.persistencia import (
     crear_tablas,
     probar_conexion,
 )
+from src.seguridad.validador import sanitizar_nombre_archivo, sanitizar_texto
 
 
-def leer_texto_no_vacio(mensaje: str) -> str:
-    """Solicita una cadena al usuario asegurando que no quede vacía."""
+def mostrar_error_seguro(accion: str, err: Exception) -> None:
+    """
+    Imprime mensajes de error controlados para el usuario final sin exponer
+    detalles internos de infraestructura, contraseñas o stacktraces (Criterio 3.1.3).
+    """
+    if isinstance(err, (ValidacionError, AutenticacionError, AutorizacionError)):
+        print(f"Advertencia [{accion}]: {err.mensaje}")
+    elif isinstance(err, (DAOError, ConexionError)):
+        print(f"Error [{accion}]: Ocurrió un problema de persistencia en la base de datos. Operación revertida con seguridad.")
+    elif isinstance(err, ServicioExternoError):
+        print(f"Error de Servicio Externo [{accion}]: {err.mensaje}")
+    else:
+        print(f"Error inesperado [{accion}]: La operación no pudo completarse de manera segura.")
+
+
+def leer_texto_no_vacio(mensaje: str, max_longitud: int = 150) -> Optional[str]:
+    """Solicita una cadena al usuario asegurando que no quede vacía ni contenga caracteres maliciosos."""
     while True:
         try:
             entrada = input(mensaje).strip()
             if entrada:
-                return entrada
+                return sanitizar_texto(entrada, max_longitud=max_longitud)
             print("Error: El campo no puede estar vacio. Intente nuevamente.")
         except (KeyboardInterrupt, EOFError):
             print("\nOperacion cancelada por el usuario.")
-            return ""
+            return None
+        except ValidacionError as v_err:
+            print(f"Error de formato: {v_err.mensaje}")
 
 
 def leer_entero(mensaje: str, minimo: Optional[int] = None, maximo: Optional[int] = None) -> Optional[int]:
@@ -61,13 +87,16 @@ def leer_entero(mensaje: str, minimo: Optional[int] = None, maximo: Optional[int
 
 
 def leer_flotante(mensaje: str, minimo: Optional[float] = None) -> Optional[float]:
-    """Lee un flotante con validacion de valor minimo."""
+    """Lee un flotante con validacion de valor minimo y proteccion contra NaN e Infinito."""
     while True:
         try:
             entrada = input(mensaje).strip()
             if not entrada:
                 return None
             valor = float(entrada)
+            if not math.isfinite(valor):
+                print("Error: Debe ingresar un número finito (no se permite NaN ni Infinito).")
+                continue
             if minimo is not None and valor < minimo:
                 print(f"Error: El valor debe ser mayor o igual a {minimo}.")
                 continue
@@ -648,10 +677,12 @@ class SistemaCRUD:
             nombre_archivo = input(f"Nombre de archivo de salida (por defecto informe_{id_inf}.txt): ").strip()
             if not nombre_archivo:
                 nombre_archivo = f"informe_{id_inf}.txt"
+            else:
+                nombre_archivo = sanitizar_nombre_archivo(nombre_archivo, extensiones_permitidas=(".txt", ".log"))
             inf.exportar(nombre_archivo)
             print(f"Informe exportado exitosamente al archivo: {nombre_archivo}")
         except Exception as err:
-            print(f"Error al exportar informe: {err}")
+            mostrar_error_seguro("Exportar Informe", err)
 
     def _eliminar_informe(self) -> None:
         id_inf = leer_entero("ID del informe a eliminar: ", minimo=1)
@@ -696,34 +727,50 @@ class SistemaCRUD:
     def _crear_usuario(self) -> None:
         print("\n--- Registro de Usuario ---")
         nombre = leer_texto_no_vacio("Nombre completo: ")
+        if not nombre:
+            return
         correo = leer_texto_no_vacio("Correo electronico: ")
-        clave = leer_texto_no_vacio("Contrasena: ")
+        if not correo:
+            return
+        clave = leer_texto_no_vacio("Contrasena (minimo 6 caracteres): ")
+        if not clave:
+            return
         try:
             u = Usuario(None, nombre, correo)
             u.establecer_contrasena(clave)
             nuevo_id = self.usuario_dao.guardar(u)
             print(f"Usuario registrado exitosamente con ID: {nuevo_id}")
-        except (ValueError, DAOError) as err:
-            print(f"Error: {err}")
+        except Exception as err:
+            mostrar_error_seguro("Registro Usuario", err)
 
     def _crear_administrador(self) -> None:
         print("\n--- Registro de Administrador ---")
         nombre = leer_texto_no_vacio("Nombre completo: ")
+        if not nombre:
+            return
         correo = leer_texto_no_vacio("Correo electronico: ")
-        clave = leer_texto_no_vacio("Contrasena: ")
+        if not correo:
+            return
+        clave = leer_texto_no_vacio("Contrasena (minimo 6 caracteres): ")
+        if not clave:
+            return
         nivel = input("Nivel de acceso (Enter para ADMIN): ").strip() or "ADMIN"
         try:
             admin = Administrador(None, nombre, correo, nivel_acceso=nivel)
             admin.establecer_contrasena(clave)
             nuevo_id = self.usuario_dao.guardar(admin)
             print(f"Administrador registrado exitosamente con ID: {nuevo_id}")
-        except (ValueError, DAOError) as err:
-            print(f"Error: {err}")
+        except Exception as err:
+            mostrar_error_seguro("Registro Administrador", err)
 
     def _probar_autenticacion(self) -> None:
         print("\n--- Verificacion de Autenticacion ---")
         correo = leer_texto_no_vacio("Correo electronico: ")
+        if not correo:
+            return
         clave = leer_texto_no_vacio("Contrasena: ")
+        if not clave:
+            return
         try:
             usuario = self.usuario_dao.autenticar(correo, clave)
             if usuario:
@@ -731,8 +778,8 @@ class SistemaCRUD:
                 print(f"Autenticacion EXITOSA. Bienvenido/a {usuario.nombre} (Rol: {tipo}).")
             else:
                 print("Autenticacion FALLIDA. Correo o contrasena incorrectos.")
-        except DAOError as err:
-            print(f"Error: {err}")
+        except Exception as err:
+            mostrar_error_seguro("Autenticación", err)
 
     def _listar_usuarios(self) -> None:
         try:

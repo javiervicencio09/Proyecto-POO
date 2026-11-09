@@ -1,6 +1,8 @@
 from datetime import date
 from typing import Iterable, Optional
 
+from src.seguridad.validador import sanitizar_texto, validar_numero
+
 
 class RegistroDeTiempo:
     """
@@ -31,11 +33,12 @@ class RegistroDeTiempo:
 
     @horas.setter
     def horas(self, valor: float) -> None:
-        if valor <= 0:
-            raise ValueError("Las horas trabajadas deben ser mayores a 0.")
-        if valor > 24:
-            raise ValueError("Las horas trabajadas no pueden superar 24 en un solo día.")
-        self._horas = float(valor)
+        self._horas = validar_numero(
+            valor,
+            nombre_campo="Las horas trabajadas",
+            minimo=0.01,
+            maximo=24.0,
+        )
 
     @property
     def descripcionTareas(self) -> str:
@@ -44,7 +47,7 @@ class RegistroDeTiempo:
 
     @descripcionTareas.setter
     def descripcionTareas(self, valor: str) -> None:
-        self.descripcion_tareas = valor
+        self.descripcion_tareas = sanitizar_texto(valor, max_longitud=300, permitir_vacio=True)
 
     @staticmethod
     def calcularHorasTotales(registros: Iterable["RegistroDeTiempo"]) -> float:

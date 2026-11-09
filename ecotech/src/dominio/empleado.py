@@ -1,6 +1,7 @@
 from datetime import date
 from typing import TYPE_CHECKING, Optional
 
+from src.seguridad.validador import sanitizar_texto, validar_numero
 from .usuario import Usuario
 
 if TYPE_CHECKING:
@@ -55,9 +56,7 @@ class Empleado(Usuario):
 
     @salario.setter
     def salario(self, nuevo_salario: float) -> None:
-        if nuevo_salario < 0:
-            raise ValueError("El salario no puede ser negativo.")
-        self._salario = float(nuevo_salario)
+        self._salario = validar_numero(nuevo_salario, "El salario", minimo=0.0)
 
     @property
     def direccion(self) -> str:
@@ -65,7 +64,7 @@ class Empleado(Usuario):
 
     @direccion.setter
     def direccion(self, valor: str) -> None:
-        self._direccion = valor.strip()
+        self._direccion = sanitizar_texto(valor, max_longitud=120, permitir_vacio=True)
 
     @property
     def telefono(self) -> str:
@@ -73,7 +72,7 @@ class Empleado(Usuario):
 
     @telefono.setter
     def telefono(self, valor: str) -> None:
-        self._telefono = valor.strip()
+        self._telefono = sanitizar_texto(valor, max_longitud=30, permitir_vacio=True)
 
     def actualizar_salario(self, nuevo_salario: float) -> float:
         """Actualiza el salario del empleado a través de su setter validado."""

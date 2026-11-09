@@ -1,6 +1,7 @@
 from datetime import date
 from typing import TYPE_CHECKING, List, Optional, Union
 
+from src.seguridad.validador import sanitizar_texto
 from .empleado import Empleado
 
 if TYPE_CHECKING:
@@ -22,8 +23,8 @@ class Proyecto:
         empleados_asignados: Optional[List[Empleado]] = None,
     ) -> None:
         self.id_proyecto = id_proyecto
-        self.nombre = nombre
-        self.descripcion = descripcion
+        self.nombre = sanitizar_texto(nombre, max_longitud=120) if nombre else ""
+        self.descripcion = sanitizar_texto(descripcion, max_longitud=500, permitir_vacio=True)
         self.fecha_inicio = fecha_inicio
         self.empleados_asignados: List[Empleado] = (
             empleados_asignados if empleados_asignados is not None else []

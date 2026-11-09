@@ -14,7 +14,7 @@ class DepartamentoDAO:
     def guardar(self, departamento: Departamento) -> int:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         id_gerente = (
             departamento.gerente.id_empleado
             if isinstance(departamento.gerente, Empleado)
@@ -38,7 +38,7 @@ class DepartamentoDAO:
     def buscar_por_id(self, id_departamento: int) -> Optional[Departamento]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT id_departamento, nombre, gerente FROM departamento WHERE id_departamento={p}",
@@ -74,7 +74,7 @@ class DepartamentoDAO:
     def actualizar(self, departamento: Departamento) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         id_gerente = (
             departamento.gerente.id_empleado
             if isinstance(departamento.gerente, Empleado)
@@ -97,7 +97,7 @@ class DepartamentoDAO:
     def eliminar(self, id_departamento: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(f"DELETE FROM departamento WHERE id_departamento={p}", (id_departamento,))
             conexion.commit()
@@ -112,7 +112,7 @@ class DepartamentoDAO:
     def agregar_empleado(self, id_departamento: int, id_empleado: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"INSERT INTO departamento_empleado (id_departamento, id_empleado) VALUES ({p}, {p})",
@@ -131,7 +131,7 @@ class DepartamentoDAO:
     def eliminar_empleado(self, id_departamento: int, id_empleado: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"DELETE FROM departamento_empleado WHERE id_departamento={p} AND id_empleado={p}",
@@ -149,7 +149,7 @@ class DepartamentoDAO:
     def listar_empleados_departamento(self, id_departamento: int) -> List[Empleado]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT e.id_empleado, e.nombre, e.cargo, e.salario, e.direccion, e.telefono, e.correo, e.fecha_inicio_contrato "

@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 
+from src.seguridad.validador import sanitizar_texto
 from .empleado import Empleado
 
 
@@ -17,7 +18,7 @@ class Departamento:
         empleados: Optional[List[Empleado]] = None,
     ) -> None:
         self.id_departamento = id_departamento
-        self.nombre = nombre
+        self.nombre = sanitizar_texto(nombre, max_longitud=100) if nombre else ""
         self._gerente = gerente
         self.empleados: List[Empleado] = empleados if empleados is not None else []
 

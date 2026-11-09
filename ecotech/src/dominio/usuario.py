@@ -1,11 +1,19 @@
-import hashlib
 from typing import Optional
+
+from src.seguridad.validador import (
+    hashear_contrasena,
+    sanitizar_texto,
+    validar_contrasena,
+    validar_correo,
+    verificar_contrasena,
+)
 
 
 class Usuario:
     """
     Clase base que modela a un usuario del sistema EcoTech Solutions.
-    Aplica encapsulamiento protegiendo credenciales y datos de contacto.
+    Aplica encapsulamiento protegiendo credenciales y datos de contacto,
+    con validaciones defensivas y prevención de ataques de tiempo (Criterio 3.1.2).
     """
 
     def __init__(
@@ -16,7 +24,8 @@ class Usuario:
         contrasena_hash: str = "",
     ) -> None:
         self.id_usuario = id_usuario
-        self.nombre = nombre
+        self.nombre = sanitizar_texto(nombre, max_longitud=100) if nombre else ""
+        self._correo = ""
         self.correo = correo
         self._contrasena_hash = contrasena_hash
 
@@ -35,10 +44,10 @@ class Usuario:
 
     @correo.setter
     def correo(self, valor: str) -> None:
-        valor_limpio = valor.strip()
-        if valor_limpio and ("@" not in valor_limpio or "." not in valor_limpio):
-            raise ValueError(f"Formato de correo electrónico inválido: {valor}")
-        self._correo = valor_limpio
+        if valor:
+            self._correo = validar_correo(valor)
+        else:
+            self._correo = ""
 
     @property
     def contrasena_hash(self) -> str:
@@ -54,20 +63,24 @@ class Usuario:
         """Genera el hash seguro SHA-256 de una contraseña en texto plano."""
         if not contrasena_plana:
             return ""
-        return hashlib.sha256(contrasena_plana.encode("utf-8")).hexdigest()
+        return hashear_contrasena(contrasena_plana)
 
     def establecer_contrasena(self, contrasena_plana: str) -> None:
-        """Cifra y almacena la contraseña del usuario."""
+        """
+        Valida, cifra y almacena la contraseña del usuario.
+        Lanza ValidacionError si la contraseña no cumple con la longitud mínima requerida.
+        """
+        validar_contrasena(contrasena_plana, min_longitud=6)
         self._contrasena_hash = self.hashear_contrasena(contrasena_plana)
 
     def autenticar(self, contrasena_plana: str) -> bool:
         """
         Método definido en el UML (+ autenticar: bool).
-        Compara la contraseña en texto plano con el hash almacenado.
+        Compara de forma segura (mitigando Timing Attacks) la contraseña con el hash almacenado.
         """
         if not self._contrasena_hash or not contrasena_plana:
             return False
-        return self.hashear_contrasena(contrasena_plana) == self._contrasena_hash
+        return verificar_contrasena(contrasena_plana, self._contrasena_hash)
 
     def __str__(self) -> str:
         return f"Usuario(id={self.id_usuario}, nombre='{self.nombre}', correo='{self.correo}')"

@@ -14,7 +14,7 @@ class ProyectoDAO:
     def guardar(self, proyecto: Proyecto) -> int:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         fecha_str = str(proyecto.fecha_inicio) if proyecto.fecha_inicio else None
         try:
             cursor.execute(
@@ -34,7 +34,7 @@ class ProyectoDAO:
     def buscar_por_id(self, id_proyecto: int) -> Optional[Proyecto]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT id_proyecto, nombre, descripcion, fecha_inicio FROM proyecto WHERE id_proyecto={p}",
@@ -75,7 +75,7 @@ class ProyectoDAO:
     def actualizar(self, proyecto: Proyecto) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         fecha_str = str(proyecto.fecha_inicio) if proyecto.fecha_inicio else None
         try:
             cursor.execute(
@@ -94,7 +94,7 @@ class ProyectoDAO:
     def eliminar(self, id_proyecto: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(f"DELETE FROM proyecto WHERE id_proyecto = {p}", (id_proyecto,))
             conexion.commit()
@@ -109,7 +109,7 @@ class ProyectoDAO:
     def asignar_empleado(self, id_proyecto: int, id_empleado: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"INSERT INTO proyecto_empleado (id_proyecto, id_empleado) VALUES ({p}, {p})",
@@ -127,7 +127,7 @@ class ProyectoDAO:
     def desasignar_empleado(self, id_proyecto: int, id_empleado: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"DELETE FROM proyecto_empleado WHERE id_proyecto={p} AND id_empleado={p}",
@@ -145,7 +145,7 @@ class ProyectoDAO:
     def listar_empleados_proyecto(self, id_proyecto: int) -> List[Empleado]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT e.id_empleado, e.nombre, e.cargo, e.salario, e.direccion, e.telefono, e.correo, e.fecha_inicio_contrato "

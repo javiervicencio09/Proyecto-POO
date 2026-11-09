@@ -1,10 +1,12 @@
-from .usuario import Usuario
 from .administrador import Administrador
-from .empleado import Empleado
 from .departamento import Departamento
-from .proyecto import Proyecto
-from .registro_tiempo import RegistroDeTiempo
+from .empleado import Empleado
 from .informe import Informe
+from .pago_internacional import PagoInternacional
+from .proyecto import Proyecto
+from .registro_clima import RegistroClima
+from .registro_tiempo import RegistroDeTiempo
+from .usuario import Usuario
 
 __all__ = [
     "Usuario",
@@ -14,4 +16,6 @@ __all__ = [
     "Proyecto",
     "RegistroDeTiempo",
     "Informe",
+    "RegistroClima",
+    "PagoInternacional",
 ]

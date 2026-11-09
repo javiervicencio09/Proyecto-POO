@@ -15,7 +15,7 @@ class UsuarioDAO:
     def guardar(self, usuario: Union[Usuario, Administrador]) -> int:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         es_admin = isinstance(usuario, Administrador)
         tipo = "ADMIN" if es_admin else "USUARIO"
 
@@ -46,7 +46,7 @@ class UsuarioDAO:
     def buscar_por_id(self, id_usuario: int) -> Optional[Union[Usuario, Administrador]]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT u.id_usuario, u.nombre, u.correo, u.contrasena_hash, u.tipo_usuario, a.nivel_acceso "
@@ -72,7 +72,7 @@ class UsuarioDAO:
     def buscar_por_correo(self, correo: str) -> Optional[Union[Usuario, Administrador]]:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"SELECT u.id_usuario, u.nombre, u.correo, u.contrasena_hash, u.tipo_usuario, a.nivel_acceso "
@@ -129,7 +129,7 @@ class UsuarioDAO:
     def actualizar(self, usuario: Union[Usuario, Administrador]) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(
                 f"UPDATE usuario SET nombre={p}, correo={p}, contrasena_hash={p} WHERE id_usuario={p}",
@@ -152,7 +152,7 @@ class UsuarioDAO:
     def eliminar(self, id_usuario: int) -> bool:
         conexion = abrir_conexion()
         cursor = conexion.cursor()
-        p = marcador()
+        p = marcador(conexion)
         try:
             cursor.execute(f"DELETE FROM usuario WHERE id_usuario = {p}", (id_usuario,))
             conexion.commit()
