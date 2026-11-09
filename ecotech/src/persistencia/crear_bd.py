@@ -1,8 +1,44 @@
 import logging
+import os
 import sqlite3
 from src.persistencia.conexion import abrir_conexion, obtener_motor
 
 logger = logging.getLogger(__name__)
+
+
+def asegurar_base_datos_mysql() -> None:
+    """Si el motor configurado es MySQL, crea la base de datos si aún no existe."""
+    if obtener_motor() != "mysql":
+        return
+    try:
+        import pymysql
+    except ImportError:
+        return
+
+    host = os.getenv("DB_HOST", "localhost")
+    try:
+        port = int(os.getenv("DB_PORT", "3306"))
+    except ValueError:
+        port = 3306
+    user = os.getenv("DB_USER", "root")
+    password = os.getenv("DB_PASSWORD", "")
+    db_name = os.getenv("DB_NAME", "ecotech")
+
+    try:
+        conn = pymysql.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            charset="utf8mb4",
+            connect_timeout=2,
+        )
+        with conn.cursor() as cur:
+            cur.execute(f"CREATE DATABASE IF NOT EXISTS `{db_name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;")
+        conn.commit()
+        conn.close()
+    except Exception as err:
+        logger.debug("No se pudo pre-crear la base de datos MySQL: %s", err)
 
 
 def crear_tablas() -> None:
@@ -11,6 +47,7 @@ def crear_tablas() -> None:
     tanto para SQLite como para MySQL (WampServer), asegurando integridad referencial
     y compatibilidad con esquemas previos.
     """
+    asegurar_base_datos_mysql()
     conexion = abrir_conexion()
     cursor = conexion.cursor()
     es_sqlite = isinstance(conexion, sqlite3.Connection)
@@ -281,4 +318,7 @@ def crear_tablas() -> None:
 
 if __name__ == "__main__":
     crear_tablas()
-    print("Base de datos preparada correctamente con el modelo UML completo.")
+    conn = abrir_conexion()
+    motor_activo = "SQLite (contingencia local)" if isinstance(conn, sqlite3.Connection) else "MySQL (WampServer)"
+    conn.close()
+    print(f"Base de datos preparada correctamente con el modelo UML completo. [Motor: {motor_activo}]")
