@@ -20,8 +20,8 @@ from src.excepciones import ValidacionError
 # Patrón RFC básico para correo electrónico
 PATRON_CORREO = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
-# Patrón para nombres de ciudades permitiendo tildes y caracteres internacionales
-PATRON_CIUDAD = re.compile(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.\']{2,80}$")
+# Patrón para nombres de ciudades permitiendo tildes, comas y caracteres internacionales
+PATRON_CIUDAD = re.compile(r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s\-\.\',]{2,100}$")
 
 # Patrón para códigos de divisa ISO 4217 (3 letras mayúsculas, ej: USD, EUR, CLP)
 PATRON_MONEDA = re.compile(r"^[A-Z]{3}$")
