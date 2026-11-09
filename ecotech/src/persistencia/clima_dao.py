@@ -151,3 +151,4 @@ class ClimaDAO:
         finally:
             cursor.close()
             conexion.close()
+
