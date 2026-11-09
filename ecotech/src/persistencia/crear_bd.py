@@ -104,6 +104,35 @@ def crear_tablas() -> None:
                 FOREIGN KEY (creado_por) REFERENCES usuario(id_usuario) ON DELETE SET NULL
             );
             """,
+            """
+            CREATE TABLE IF NOT EXISTS registro_clima_proyecto (
+                id_registro_clima INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_proyecto INTEGER,
+                ciudad TEXT NOT NULL,
+                temperatura REAL NOT NULL,
+                humedad REAL NOT NULL,
+                estado_clima TEXT NOT NULL,
+                recomendacion TEXT NOT NULL,
+                fecha_consulta TEXT NOT NULL,
+                FOREIGN KEY (id_proyecto) REFERENCES proyecto(id_proyecto) ON DELETE SET NULL
+            );
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS pago_internacional (
+                id_pago INTEGER PRIMARY KEY AUTOINCREMENT,
+                id_empleado INTEGER NOT NULL,
+                id_proyecto INTEGER,
+                monto_origen REAL NOT NULL,
+                moneda_origen TEXT NOT NULL,
+                monto_convertido REAL NOT NULL,
+                moneda_destino TEXT NOT NULL,
+                tipo_cambio REAL NOT NULL,
+                fecha_pago TEXT NOT NULL,
+                detalles TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY (id_empleado) REFERENCES empleado(id_empleado) ON DELETE CASCADE,
+                FOREIGN KEY (id_proyecto) REFERENCES proyecto(id_proyecto) ON DELETE SET NULL
+            );
+            """,
         ]
     else:
         sentencias = [
@@ -192,6 +221,35 @@ def crear_tablas() -> None:
                 contenido TEXT NOT NULL,
                 creado_por INT NULL,
                 FOREIGN KEY (creado_por) REFERENCES usuario(id_usuario) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS registro_clima_proyecto (
+                id_registro_clima INT PRIMARY KEY AUTO_INCREMENT,
+                id_proyecto INT NULL,
+                ciudad VARCHAR(100) NOT NULL,
+                temperatura FLOAT NOT NULL,
+                humedad FLOAT NOT NULL,
+                estado_clima VARCHAR(100) NOT NULL,
+                recomendacion TEXT NOT NULL,
+                fecha_consulta VARCHAR(30) NOT NULL,
+                FOREIGN KEY (id_proyecto) REFERENCES proyecto(id_proyecto) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS pago_internacional (
+                id_pago INT PRIMARY KEY AUTO_INCREMENT,
+                id_empleado INT NOT NULL,
+                id_proyecto INT NULL,
+                monto_origen DECIMAL(12, 2) NOT NULL,
+                moneda_origen VARCHAR(10) NOT NULL,
+                monto_convertido DECIMAL(12, 2) NOT NULL,
+                moneda_destino VARCHAR(10) NOT NULL,
+                tipo_cambio DECIMAL(12, 6) NOT NULL,
+                fecha_pago VARCHAR(30) NOT NULL,
+                detalles TEXT NOT NULL,
+                FOREIGN KEY (id_empleado) REFERENCES empleado(id_empleado) ON DELETE CASCADE,
+                FOREIGN KEY (id_proyecto) REFERENCES proyecto(id_proyecto) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
         ]

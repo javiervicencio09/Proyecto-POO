@@ -36,9 +36,13 @@ def ejecutar_demostracion() -> None:
     informe_dao = InformeDAO()
     usuario_dao = UsuarioDAO()
 
-    admin = Administrador(None, "Administrador Sistema", "admin@ecotech.cl", nivel_acceso="SENIOR")
-    admin.establecer_contrasena("Admin2026*")
-    usuario_dao.guardar(admin)
+    admin_existente = usuario_dao.buscar_por_correo("admin@ecotech.cl")
+    if not admin_existente:
+        admin = Administrador(None, "Administrador Sistema", "admin@ecotech.cl", nivel_acceso="SENIOR")
+        admin.establecer_contrasena("Admin2026*")
+        usuario_dao.guardar(admin)
+    else:
+        admin = admin_existente
 
     empleado1 = Empleado(None, "Ana Perez", "Desarrolladora", 1200000.0, correo="ana@ecotech.cl")
     empleado2 = Empleado(None, "Luis Gomez", "Analista", 1100000.0, correo="luis@ecotech.cl")
@@ -67,7 +71,33 @@ def ejecutar_demostracion() -> None:
     informe.generar({"Empleados": 2, "Proyectos": 1, "Horas": 4.0})
     informe_dao.guardar(informe)
 
-    print("Demostracion completada con exito.")
+    # Demostración Unidad 3: Consumo de APIs Externas y Persistencia Local
+    try:
+        from src.persistencia import ClimaDAO, PagoInternacionalDAO
+        from src.servicios_externos import ClimaService, DivisasService
+
+        clima_service = ClimaService()
+        divisas_service = DivisasService()
+        clima_dao = ClimaDAO()
+        pago_dao = PagoInternacionalDAO()
+
+        print("\n--- Demostración Unidad 3: Consumo de APIs Externas ---")
+        clima_reg = clima_service.consultar_clima("Santiago", proyecto.id_proyecto)
+        id_clima = clima_dao.guardar(clima_reg)
+        print(f"API Clima: {clima_reg.ciudad} | Temp: {clima_reg.temperatura:.1f}°C | Viabilidad: {'FAVORABLE' if clima_reg.es_condicion_favorable() else 'ADVERSO'} (ID: {id_clima})")
+
+        pago_reg = divisas_service.calcular_pago_internacional(
+            id_empleado=empleado1.id_empleado,
+            salario_origen=empleado1.salario,
+            moneda_destino="USD",
+            id_proyecto=proyecto.id_proyecto,
+        )
+        id_pago = pago_dao.guardar(pago_reg)
+        print(f"API Divisas: ${pago_reg.monto_origen:,.0f} CLP -> ${pago_reg.monto_convertido:,.2f} USD (Tasa: {pago_reg.tipo_cambio:.4f}) (ID: {id_pago})")
+    except Exception as err:
+        print(f"Aviso en consumo de servicios externos: {err}")
+
+    print("\nDemostracion completada con exito.")
     print(f"Empleados registrados: {len(empleado_dao.listar())}")
     print(f"Departamentos registrados: {len(departamento_dao.listar())}")
     print(f"Proyectos registrados: {len(proyecto_dao.listar())}")

@@ -1,4 +1,5 @@
 import math
+import os
 import sys
 from datetime import date
 from typing import Optional
@@ -8,11 +9,16 @@ from src.dominio import (
     Departamento,
     Empleado,
     Informe,
+    PagoInternacional,
     Proyecto,
+    RegistroClima,
     RegistroDeTiempo,
     Usuario,
 )
 from src.excepciones import (
+    APIConexionError,
+    APIRespuestaError,
+    APITimeoutError,
     AutenticacionError,
     AutorizacionError,
     ConexionError,
@@ -22,16 +28,24 @@ from src.excepciones import (
     ValidacionError,
 )
 from src.persistencia import (
+    ClimaDAO,
     DepartamentoDAO,
     EmpleadoDAO,
     InformeDAO,
+    PagoInternacionalDAO,
     ProyectoDAO,
     RegistroTiempoDAO,
     UsuarioDAO,
     crear_tablas,
     probar_conexion,
 )
-from src.seguridad.validador import sanitizar_nombre_archivo, sanitizar_texto
+from src.seguridad.validador import (
+    sanitizar_nombre_archivo,
+    sanitizar_texto,
+    validar_ciudad,
+    validar_codigo_moneda,
+)
+from src.servicios_externos import ClimaService, DivisasService
 
 
 def mostrar_error_seguro(accion: str, err: Exception) -> None:
@@ -135,6 +149,67 @@ class SistemaCRUD:
         self.registro_dao = RegistroTiempoDAO()
         self.informe_dao = InformeDAO()
         self.usuario_dao = UsuarioDAO()
+        self.clima_dao = ClimaDAO()
+        self.pago_dao = PagoInternacionalDAO()
+        self.clima_service = ClimaService()
+        self.divisas_service = DivisasService()
+        self.usuario_actual: Optional[Usuario] = None
+
+    def iniciar_sesion(self) -> bool:
+        """
+        Sistema de control de acceso obligatorio (Gatekeeper) con credenciales encriptadas
+        y mitigación de ataques de fuerza bruta mediante límite de reintentos (Criterio 3.1.2).
+        """
+        print("\n============================================================")
+        print("          CONTROL DE ACCESO - ECOTECH SOLUTIONS")
+        print("============================================================")
+
+        # Si no existen usuarios, crear administrador inicial para permitir primer acceso
+        try:
+            usuarios = self.usuario_dao.listar()
+            if not usuarios:
+                print("Iniciando por primera vez: Registrando Administrador maestro...")
+                admin_inicial = Administrador(None, "Administrador Sistema", "admin@ecotech.cl", nivel_acceso="SENIOR")
+                admin_inicial.establecer_contrasena("Admin2026*")
+                self.usuario_dao.guardar(admin_inicial)
+                print("Administrador creado. Credenciales maestras: admin@ecotech.cl / Admin2026*\n")
+        except Exception as err:
+            mostrar_error_seguro("Inicialización de Usuarios", err)
+
+        try:
+            max_intentos = int(os.getenv("MAX_LOGIN_INTENTOS", "3"))
+        except ValueError:
+            max_intentos = 3
+
+        intentos = 0
+        while intentos < max_intentos:
+            intentos += 1
+            print(f"\n[Autenticación requerida - Intento {intentos} de {max_intentos}]")
+            correo = leer_texto_no_vacio("Correo electrónico: ")
+            if not correo:
+                return False
+            clave = leer_texto_no_vacio("Contraseña: ")
+            if not clave:
+                return False
+
+            try:
+                usuario = self.usuario_dao.autenticar(correo, clave)
+                if usuario:
+                    self.usuario_actual = usuario
+                    tipo = "ADMINISTRADOR" if isinstance(usuario, Administrador) else "USUARIO"
+                    print("\n============================================================")
+                    print(f" Autenticación Exitosa. Bienvenido(a), {usuario.nombre}!")
+                    print(f" Nivel: {tipo} | Correo: {usuario.correo}")
+                    print("============================================================")
+                    return True
+                else:
+                    print("Credenciales inválidas. Correo o contraseña incorrectos.")
+            except Exception as err:
+                mostrar_error_seguro("Autenticación", err)
+
+        print("\n[ALERTA DE SEGURIDAD] Ha superado el número máximo de intentos fallidos permitidos.")
+        print("El acceso al sistema ha sido bloqueado preventivamente.")
+        return False
 
     def menu_empleados(self) -> None:
         while True:
@@ -146,10 +221,12 @@ class SistemaCRUD:
             print("[3] Buscar empleado por ID")
             print("[4] Actualizar salario de empleado")
             print("[5] Eliminar empleado")
+            print("[6] Liquidar sueldo en moneda extranjera (API Externa)")
+            print("[7] Historial de pagos internacionales del personal")
             print("[0] Volver al menu principal")
             print("------------------------------------------------------------")
 
-            opc = leer_entero("Seleccione una opcion: ", 0, 5)
+            opc = leer_entero("Seleccione una opcion: ", 0, 7)
             if opc is None or opc == 0:
                 break
 
@@ -163,6 +240,10 @@ class SistemaCRUD:
                 self._actualizar_salario_empleado()
             elif opc == 5:
                 self._eliminar_empleado()
+            elif opc == 6:
+                self._calcular_pago_internacional()
+            elif opc == 7:
+                self._listar_pagos_internacionales()
 
     def _crear_empleado(self) -> None:
         print("\n--- Registro de Empleado ---")
@@ -380,10 +461,12 @@ class SistemaCRUD:
             print("[4] Asignar empleado a proyecto")
             print("[5] Desasignar empleado de proyecto")
             print("[6] Eliminar proyecto")
+            print("[7] Consultar clima operativo en terreno (API Externa)")
+            print("[8] Historial meteorologico del proyecto")
             print("[0] Volver al menu principal")
             print("------------------------------------------------------------")
 
-            opc = leer_entero("Seleccione una opcion: ", 0, 6)
+            opc = leer_entero("Seleccione una opcion: ", 0, 8)
             if opc is None or opc == 0:
                 break
 
@@ -399,6 +482,10 @@ class SistemaCRUD:
                 self._desasignar_empleado_proyecto()
             elif opc == 6:
                 self._eliminar_proyecto()
+            elif opc == 7:
+                self._consultar_clima_proyecto()
+            elif opc == 8:
+                self._listar_historial_clima()
 
     def _crear_proyecto(self) -> None:
         print("\n--- Registro de Proyecto ---")
@@ -809,8 +896,268 @@ class SistemaCRUD:
                 print(f"Error: {err}")
 
 
+    def menu_clima_proyectos(self) -> None:
+        """Submenú interactivo para la gestión meteorológica de proyectos (Problemática 1)."""
+        while True:
+            print("\n------------------------------------------------------------")
+            print("     PLANIFICACIÓN OPERATIVA Y CLIMA (API EXTERNA)")
+            print("------------------------------------------------------------")
+            print("[1] Consultar clima operativo en tiempo real para un proyecto")
+            print("[2] Ver última condición meteorológica guardada (Caché local)")
+            print("[3] Historial de consultas meteorológicas por proyecto")
+            print("[4] Listar todas las mediciones climáticas del sistema")
+            print("[0] Volver al menú principal")
+            print("------------------------------------------------------------")
+
+            opc = leer_entero("Seleccione una opción: ", 0, 4)
+            if opc is None or opc == 0:
+                break
+
+            if opc == 1:
+                self._consultar_clima_proyecto()
+            elif opc == 2:
+                self._ver_ultimo_clima_proyecto()
+            elif opc == 3:
+                self._listar_historial_clima()
+            elif opc == 4:
+                self._listar_todas_mediciones_clima()
+
+    def _consultar_clima_proyecto(self) -> None:
+        print("\n--- Consulta Meteorológica de Proyecto en Tiempo Real ---")
+        id_proy = leer_entero("ID del proyecto a evaluar (Enter para omitir asociación): ", minimo=1)
+        proy_nombre = ""
+        if id_proy:
+            try:
+                proy = self.proyecto_dao.buscar_por_id(id_proy)
+                if proy:
+                    proy_nombre = proy.nombre
+                    print(f"Proyecto seleccionado: {proy.nombre} (ID: {id_proy})")
+                else:
+                    print(f"Advertencia: Proyecto ID {id_proy} no existe. Se continuará como consulta libre.")
+                    id_proy = None
+            except DAOError as err:
+                mostrar_error_seguro("Buscar Proyecto", err)
+
+        ciudad = leer_texto_no_vacio("Ciudad o localidad de ejecución (ej: Santiago, Antofagasta, Temuco): ")
+        if not ciudad:
+            return
+
+        print(f"\nConsultando servicio meteorológico para '{ciudad}'...")
+        try:
+            registro = self.clima_service.consultar_clima(ciudad, id_proy)
+            estado_icono = "FAVORABLE" if registro.es_condicion_favorable() else "ALERTA / ADVERSO"
+
+            print("\n============================================================")
+            print("      REPORTE METEOROLÓGICO Y APTITUD OPERATIVA ECOTECH")
+            print("============================================================")
+            if proy_nombre:
+                print(f" Proyecto:          {proy_nombre} [ID: {id_proy}]")
+            print(f" Localidad:         {registro.ciudad}")
+            print(f" Temperatura:       {registro.temperatura:.1f} °C")
+            print(f" Humedad Relativa:  {registro.humedad:.0f} %")
+            print(f" Condición:         {registro.estado_clima}")
+            print(f" Viabilidad Faenas: {estado_icono}")
+            print("------------------------------------------------------------")
+            print(f" Directriz Operativa:\n {registro.recomendacion}")
+            print("============================================================")
+
+            confirm = input("\n¿Desea guardar esta medición en la base de datos local? (s/n, Enter para Sí): ").strip().lower()
+            if confirm != "n":
+                nuevo_id = self.clima_dao.guardar(registro)
+                print(f"Medición climática persistida exitosamente con ID local: {nuevo_id}")
+        except (APIConexionError, APITimeoutError) as err:
+            print(f"\n[AVISO DE CONTINGENCIA] {err.mensaje}")
+            if id_proy:
+                print("Intentando recuperar la última medición guardada en la base de datos local...")
+                self._ver_ultimo_clima_proyecto(id_proy)
+        except Exception as err:
+            mostrar_error_seguro("Consulta Meteorológica", err)
+
+    def _ver_ultimo_clima_proyecto(self, id_proy: Optional[int] = None) -> None:
+        if not id_proy:
+            id_proy = leer_entero("Ingrese ID del proyecto: ", minimo=1)
+            if not id_proy:
+                return
+
+        try:
+            ultimo = self.clima_dao.obtener_ultimo_clima(id_proy)
+            if ultimo:
+                print(f"\n--- Último Registro Meteorológico Guardado para Proyecto ID {id_proy} ---")
+                print(f"Fecha Registro:   {ultimo.fecha_consulta}")
+                print(f"Localidad:        {ultimo.ciudad}")
+                print(f"Temperatura:      {ultimo.temperatura:.1f} °C | Humedad: {ultimo.humedad:.0f} %")
+                print(f"Condición:        {ultimo.estado_clima}")
+                print(f"Recomendación:    {ultimo.recomendacion}")
+            else:
+                print(f"No hay registros meteorológicos previos guardados para el proyecto ID {id_proy}.")
+        except DAOError as err:
+            mostrar_error_seguro("Recuperar Clima Local", err)
+
+    def _listar_historial_clima(self) -> None:
+        id_proy = leer_entero("ID del proyecto a consultar: ", minimo=1)
+        if not id_proy:
+            return
+        try:
+            historial = self.clima_dao.listar_por_proyecto(id_proy)
+            print(f"\n--- Historial Meteorológico de Proyecto ID {id_proy} ({len(historial)} registros) ---")
+            if not historial:
+                print("No hay mediciones climáticas guardadas para este proyecto.")
+                return
+            for reg in historial:
+                print(f"[{reg.fecha_consulta}] ID: {reg.id_registro_clima} | {reg.ciudad} | {reg.temperatura:.1f}°C | {reg.humedad:.0f}% | {reg.estado_clima}")
+        except DAOError as err:
+            mostrar_error_seguro("Listar Historial Clima", err)
+
+    def _listar_todas_mediciones_clima(self) -> None:
+        try:
+            todas = self.clima_dao.listar_todos()
+            print(f"\n--- Todas las Mediciones Meteorológicas en el Sistema ({len(todas)}) ---")
+            if not todas:
+                print("No hay mediciones registradas.")
+                return
+            for reg in todas:
+                proy_txt = f"Proyecto ID {reg.id_proyecto}" if reg.id_proyecto else "Sin Proyecto"
+                print(f"ID: {reg.id_registro_clima} | {proy_txt} | {reg.ciudad} | {reg.temperatura:.1f}°C | {reg.estado_clima} | {reg.fecha_consulta}")
+        except DAOError as err:
+            mostrar_error_seguro("Listar Mediciones", err)
+
+    def menu_pagos_internacionales(self) -> None:
+        """Submenú interactivo para la gestión de liquidaciones en divisas (Problemática 2)."""
+        while True:
+            print("\n------------------------------------------------------------")
+            print("     PAGOS INTERNACIONALES Y DIVISAS (API EXTERNA)")
+            print("------------------------------------------------------------")
+            print("[1] Calcular y registrar liquidación en moneda extranjera")
+            print("[2] Consultar cotización de divisas en tiempo real (USD, EUR, etc.)")
+            print("[3] Historial de pagos internacionales de un empleado")
+            print("[4] Historial de pagos internacionales por proyecto")
+            print("[5] Listar todas las liquidaciones internacionales")
+            print("[0] Volver al menú principal")
+            print("------------------------------------------------------------")
+
+            opc = leer_entero("Seleccione una opción: ", 0, 5)
+            if opc is None or opc == 0:
+                break
+
+            if opc == 1:
+                self._calcular_pago_internacional()
+            elif opc == 2:
+                self._consultar_cotizacion_divisa()
+            elif opc == 3:
+                self._listar_pagos_empleado()
+            elif opc == 4:
+                self._listar_pagos_por_proyecto()
+            elif opc == 5:
+                self._listar_pagos_internacionales()
+
+    def _calcular_pago_internacional(self) -> None:
+        print("\n--- Liquidación de Pago en Moneda Extranjera ---")
+        id_emp = leer_entero("ID del empleado a liquidar: ", minimo=1)
+        if not id_emp:
+            return
+
+        try:
+            emp = self.empleado_dao.buscar_por_id(id_emp)
+            if not emp:
+                print(f"No existe ningún empleado registrado con ID {id_emp}.")
+                return
+
+            print(f"Empleado: {emp.nombre} | Cargo: {emp.cargo} | Sueldo base: ${emp.salario:,.0f} CLP")
+            moneda_dest = input("Moneda destino de pago (ej: USD, EUR, UF, BRL) [Enter para USD]: ").strip().upper() or "USD"
+            id_proy = leer_entero("ID del proyecto asociado (opcional, Enter para omitir): ", minimo=1)
+            detalles_extra = input("Detalles adicionales o concepto (opcional): ").strip()
+
+            print(f"\nConsultando tasa de cambio en tiempo real para CLP -> {moneda_dest}...")
+            pago = self.divisas_service.calcular_pago_internacional(
+                id_empleado=emp.id_empleado,
+                salario_origen=emp.salario,
+                moneda_destino=moneda_dest,
+                id_proyecto=id_proy,
+                detalles_adicionales=detalles_extra,
+            )
+
+            print("\n============================================================")
+            print("         COMPROBANTE DE LIQUIDACIÓN INTERNACIONAL")
+            print("============================================================")
+            print(f" Empleado:           {emp.nombre} (ID: {emp.id_empleado})")
+            if id_proy:
+                print(f" Proyecto Vinculado: ID {id_proy}")
+            print(f" Salario en Origen:  ${pago.monto_origen:,.2f} {pago.moneda_origen}")
+            print(f" Monto Convertido:   ${pago.monto_convertido:,.2f} {pago.moneda_destino}")
+            print(f" Tasa de Cambio:     {pago.tipo_cambio:.6f}")
+            print(f" Fecha Emisión:      {pago.fecha_pago}")
+            print(f" Detalle / Fuente:\n {pago.detalles}")
+            print("============================================================")
+
+            confirm = input("\n¿Desea registrar y persistir este pago en la base de datos? (s/n, Enter para Sí): ").strip().lower()
+            if confirm != "n":
+                nuevo_id = self.pago_dao.guardar(pago)
+                print(f"Pago internacional registrado exitosamente con ID: {nuevo_id}")
+        except Exception as err:
+            mostrar_error_seguro("Liquidación Internacional", err)
+
+    def _consultar_cotizacion_divisa(self) -> None:
+        print("\n--- Consulta de Tipo de Cambio en Tiempo Real ---")
+        moneda_dest = input("Moneda a cotizar frente a CLP (ej: USD, EUR, UF, BRL) [Enter para USD]: ").strip().upper() or "USD"
+        try:
+            tasa_info = self.divisas_service.obtener_tasa_cambio(moneda_destino=moneda_dest, moneda_origen="CLP")
+            tasa = tasa_info["tasa_directa"]
+            ref = tasa_info.get("valor_referencia", 0.0)
+            print("\n============================================================")
+            print(f" Cotización 1 {moneda_dest} = ${ref:,.2f} CLP")
+            print(f" Factor de conversión (1 CLP = {tasa:.6f} {moneda_dest})")
+            print(f" Fuente oficial: {tasa_info['fuente']}")
+            print(f" Fecha cotización: {tasa_info['fecha_actualizacion']}")
+            print("============================================================")
+        except Exception as err:
+            mostrar_error_seguro("Cotización Divisa", err)
+
+    def _listar_pagos_empleado(self) -> None:
+        id_emp = leer_entero("ID del empleado: ", minimo=1)
+        if not id_emp:
+            return
+        try:
+            pagos = self.pago_dao.listar_por_empleado(id_emp)
+            print(f"\n--- Historial de Pagos Internacionales - Empleado ID {id_emp} ({len(pagos)}) ---")
+            if not pagos:
+                print("No hay pagos internacionales registrados para este empleado.")
+                return
+            for p in pagos:
+                print(f"ID: {p.id_pago} | {p.fecha_pago} | ${p.monto_origen:,.0f} {p.moneda_origen} -> ${p.monto_convertido:,.2f} {p.moneda_destino} (Tasa: {p.tipo_cambio:.4f})")
+        except DAOError as err:
+            mostrar_error_seguro("Listar Pagos Empleado", err)
+
+    def _listar_pagos_por_proyecto(self) -> None:
+        id_proy = leer_entero("ID del proyecto: ", minimo=1)
+        if not id_proy:
+            return
+        try:
+            pagos = self.pago_dao.listar_por_proyecto(id_proy)
+            print(f"\n--- Pagos Internacionales - Proyecto ID {id_proy} ({len(pagos)}) ---")
+            if not pagos:
+                print("No hay pagos internacionales registrados para este proyecto.")
+                return
+            for p in pagos:
+                print(f"ID: {p.id_pago} | Emp ID: {p.id_empleado} | ${p.monto_convertido:,.2f} {p.moneda_destino} | {p.fecha_pago}")
+        except DAOError as err:
+            mostrar_error_seguro("Listar Pagos Proyecto", err)
+
+    def _listar_pagos_internacionales(self) -> None:
+        try:
+            pagos = self.pago_dao.listar_todos()
+            print(f"\n--- Registro General de Pagos Internacionales ({len(pagos)}) ---")
+            if not pagos:
+                print("No hay pagos internacionales registrados.")
+                return
+            for p in pagos:
+                proy_txt = f"Proyecto ID {p.id_proyecto}" if p.id_proyecto else "Sin Proyecto"
+                print(f"ID: {p.id_pago} | Emp ID: {p.id_empleado} | {proy_txt} | ${p.monto_origen:,.0f} {p.moneda_origen} -> ${p.monto_convertido:,.2f} {p.moneda_destino} | {p.fecha_pago}")
+        except DAOError as err:
+            mostrar_error_seguro("Listar Pagos", err)
+
+
 def iniciar_interfaz_crud() -> None:
-    """Punto de entrada al menu interactivo principal."""
+    """Punto de entrada al menu interactivo principal con control de acceso (Gatekeeper)."""
     try:
         crear_tablas()
     except Exception as err:
@@ -818,22 +1165,33 @@ def iniciar_interfaz_crud() -> None:
 
     app = SistemaCRUD()
 
+    # Paso 2: Autenticación obligatoria antes de ingresar al sistema (Criterio 3.1.2)
+    if not app.iniciar_sesion():
+        print("\nCerrando aplicación por falta de autenticación. Hasta pronto.")
+        return
+
     while True:
+        rol_usuario = "ADMIN" if isinstance(app.usuario_actual, Administrador) else "USUARIO"
+        nombre_usuario = app.usuario_actual.nombre if app.usuario_actual else "Invitado"
+
         print("\n============================================================")
         print("          SISTEMA DE GESTION ECOTECH SOLUTIONS")
+        print(f" Sesión Activa: {nombre_usuario} [{rol_usuario}]")
         print("============================================================")
-        print("[1] Gestion de Empleados")
-        print("[2] Gestion de Departamentos")
-        print("[3] Gestion de Proyectos")
+        print("[1] Gestión de Empleados")
+        print("[2] Gestión de Departamentos")
+        print("[3] Gestión de Proyectos")
         print("[4] Registro de Horas y Tiempos")
         print("[5] Informes y Reportes")
-        print("[6] Usuarios y Autenticacion Segura")
-        print("[0] Salir del Sistema")
+        print("[6] Planificación Operativa y Clima de Proyectos (API Externa)")
+        print("[7] Gestión de Pagos Internacionales en Divisas (API Externa)")
+        print("[8] Usuarios y Control de Acceso")
+        print("[0] Cerrar Sesión y Salir")
         print("============================================================")
 
-        opc = leer_entero("Seleccione una opcion: ", 0, 6)
+        opc = leer_entero("Seleccione una opción: ", 0, 8)
         if opc is None or opc == 0:
-            print("\nCerrando sesion en EcoTech Solutions. Hasta pronto.")
+            print(f"\nCerrando sesión de {nombre_usuario} en EcoTech Solutions. Hasta pronto.")
             break
 
         if opc == 1:
@@ -847,4 +1205,8 @@ def iniciar_interfaz_crud() -> None:
         elif opc == 5:
             app.menu_informes()
         elif opc == 6:
+            app.menu_clima_proyectos()
+        elif opc == 7:
+            app.menu_pagos_internacionales()
+        elif opc == 8:
             app.menu_usuarios()
