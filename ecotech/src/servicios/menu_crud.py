@@ -63,6 +63,22 @@ def mostrar_error_seguro(accion: str, err: Exception) -> None:
         print(f"Error inesperado [{accion}]: La operación no pudo completarse de manera segura.")
 
 
+def limpiar_pantalla() -> None:
+    """Limpia la terminal de forma compatible entre Windows (cls) y Linux/macOS (clear)."""
+    if os.getenv("ECOTECH_NO_CLEAR"):
+        return
+    os.system("cls" if os.name == "nt" else "clear")
+
+
+def pausar_y_limpiar(mensaje: str = "Presione Enter para continuar...") -> None:
+    """Pausa la ejecución para que el usuario pueda leer los resultados antes de limpiar la pantalla."""
+    try:
+        input(f"\n{mensaje}")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    limpiar_pantalla()
+
+
 def leer_texto_no_vacio(mensaje: str, max_longitud: int = 150) -> Optional[str]:
     """Solicita una cadena al usuario asegurando que no quede vacía ni contenga caracteres maliciosos."""
     while True:
@@ -160,6 +176,7 @@ class SistemaCRUD:
         Sistema de control de acceso obligatorio (Gatekeeper) con credenciales encriptadas
         y mitigación de ataques de fuerza bruta mediante límite de reintentos (Criterio 3.1.2).
         """
+        limpiar_pantalla()
         print("\n============================================================")
         print("          CONTROL DE ACCESO - ECOTECH SOLUTIONS")
         print("============================================================")
@@ -201,6 +218,7 @@ class SistemaCRUD:
                     print(f" Autenticación Exitosa. Bienvenido(a), {usuario.nombre}!")
                     print(f" Nivel: {tipo} | Correo: {usuario.correo}")
                     print("============================================================")
+                    pausar_y_limpiar("Presione Enter para ingresar al Sistema EcoTech...")
                     return True
                 else:
                     print("Credenciales inválidas. Correo o contraseña incorrectos.")
@@ -209,10 +227,12 @@ class SistemaCRUD:
 
         print("\n[ALERTA DE SEGURIDAD] Ha superado el número máximo de intentos fallidos permitidos.")
         print("El acceso al sistema ha sido bloqueado preventivamente.")
+        pausar_y_limpiar()
         return False
 
     def menu_empleados(self) -> None:
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("                GESTION DE EMPLEADOS")
             print("------------------------------------------------------------")
@@ -244,6 +264,7 @@ class SistemaCRUD:
                 self._calcular_pago_internacional()
             elif opc == 7:
                 self._listar_pagos_internacionales()
+            pausar_y_limpiar()
 
     def _crear_empleado(self) -> None:
         print("\n--- Registro de Empleado ---")
@@ -337,6 +358,7 @@ class SistemaCRUD:
 
     def menu_departamentos(self) -> None:
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("               GESTION DE DEPARTAMENTOS")
             print("------------------------------------------------------------")
@@ -365,6 +387,7 @@ class SistemaCRUD:
                 self._desvincular_empleado_departamento()
             elif opc == 6:
                 self._eliminar_departamento()
+            pausar_y_limpiar()
 
     def _crear_departamento(self) -> None:
         print("\n--- Registro de Departamento ---")
@@ -452,6 +475,7 @@ class SistemaCRUD:
 
     def menu_proyectos(self) -> None:
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("                 GESTION DE PROYECTOS")
             print("------------------------------------------------------------")
@@ -486,6 +510,7 @@ class SistemaCRUD:
                 self._consultar_clima_proyecto()
             elif opc == 8:
                 self._listar_historial_clima()
+            pausar_y_limpiar()
 
     def _crear_proyecto(self) -> None:
         print("\n--- Registro de Proyecto ---")
@@ -576,6 +601,7 @@ class SistemaCRUD:
 
     def menu_registro_tiempo(self) -> None:
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("             REGISTRO DE HORAS Y TIEMPOS")
             print("------------------------------------------------------------")
@@ -601,6 +627,7 @@ class SistemaCRUD:
                 self._registros_por_proyecto()
             elif opc == 5:
                 self._eliminar_registro_tiempo()
+            pausar_y_limpiar()
 
     def _crear_registro_tiempo(self) -> None:
         print("\n--- Registro de Carga Horaria ---")
@@ -689,6 +716,7 @@ class SistemaCRUD:
 
     def menu_informes(self) -> None:
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("                 INFORMES Y REPORTES")
             print("------------------------------------------------------------")
@@ -711,6 +739,7 @@ class SistemaCRUD:
                 self._exportar_informe()
             elif opc == 4:
                 self._eliminar_informe()
+            pausar_y_limpiar()
 
     def _generar_informe_general(self) -> None:
         try:
@@ -785,6 +814,7 @@ class SistemaCRUD:
 
     def menu_usuarios(self) -> None:
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("            USUARIOS Y AUTENTICACION SEGURA")
             print("------------------------------------------------------------")
@@ -810,6 +840,7 @@ class SistemaCRUD:
                 self._listar_usuarios()
             elif opc == 5:
                 self._eliminar_usuario()
+            pausar_y_limpiar()
 
     def _crear_usuario(self) -> None:
         print("\n--- Registro de Usuario ---")
@@ -899,6 +930,7 @@ class SistemaCRUD:
     def menu_clima_proyectos(self) -> None:
         """Submenú interactivo para la gestión meteorológica de proyectos (Problemática 1)."""
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("     PLANIFICACIÓN OPERATIVA Y CLIMA (API EXTERNA)")
             print("------------------------------------------------------------")
@@ -921,6 +953,7 @@ class SistemaCRUD:
                 self._listar_historial_clima()
             elif opc == 4:
                 self._listar_todas_mediciones_clima()
+            pausar_y_limpiar()
 
     def _consultar_clima_proyecto(self) -> None:
         print("\n--- Consulta Meteorológica de Proyecto en Tiempo Real ---")
@@ -1024,6 +1057,7 @@ class SistemaCRUD:
     def menu_pagos_internacionales(self) -> None:
         """Submenú interactivo para la gestión de liquidaciones en divisas (Problemática 2)."""
         while True:
+            limpiar_pantalla()
             print("\n------------------------------------------------------------")
             print("     PAGOS INTERNACIONALES Y DIVISAS (API EXTERNA)")
             print("------------------------------------------------------------")
@@ -1049,6 +1083,7 @@ class SistemaCRUD:
                 self._listar_pagos_por_proyecto()
             elif opc == 5:
                 self._listar_pagos_internacionales()
+            pausar_y_limpiar()
 
     def _calcular_pago_internacional(self) -> None:
         print("\n--- Liquidación de Pago en Moneda Extranjera ---")
@@ -1171,6 +1206,7 @@ def iniciar_interfaz_crud() -> None:
         return
 
     while True:
+        limpiar_pantalla()
         rol_usuario = "ADMIN" if isinstance(app.usuario_actual, Administrador) else "USUARIO"
         nombre_usuario = app.usuario_actual.nombre if app.usuario_actual else "Invitado"
 
@@ -1191,7 +1227,8 @@ def iniciar_interfaz_crud() -> None:
 
         opc = leer_entero("Seleccione una opción: ", 0, 8)
         if opc is None or opc == 0:
-            print(f"\nCerrando sesión de {nombre_usuario} en EcoTech Solutions. Hasta pronto.")
+            limpiar_pantalla()
+            print(f"\nCerrando sesión de {nombre_usuario} en EcoTech Solutions. Hasta pronto.\n")
             break
 
         if opc == 1:
