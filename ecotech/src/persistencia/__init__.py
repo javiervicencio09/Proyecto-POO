@@ -8,6 +8,7 @@ from .informe_dao import InformeDAO
 from .pago_internacional_dao import PagoInternacionalDAO
 from .proyecto_dao import ProyectoDAO
 from .registro_tiempo_dao import RegistroTiempoDAO
+from .semillas import insertar_semillas_si_vacia, poblar_semillas
 from .usuario_dao import UsuarioDAO
 
 __all__ = [
@@ -15,6 +16,8 @@ __all__ = [
     "obtener_motor",
     "probar_conexion",
     "crear_tablas",
+    "poblar_semillas",
+    "insertar_semillas_si_vacia",
     "DAOError",
     "ConexionError",
     "DepartamentoDAO",

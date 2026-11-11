@@ -308,6 +308,13 @@ def crear_tablas() -> None:
                 cursor.execute("ALTER TABLE departamento ADD COLUMN id_gerente INTEGER;")
 
         conexion.commit()
+
+        # Inserción automática de datos semilla si la base de datos está vacía
+        try:
+            from src.persistencia.semillas import insertar_semillas_si_vacia
+            insertar_semillas_si_vacia(conexion)
+        except Exception as seed_err:
+            logger.warning("Aviso al auto-insertar datos semilla: %s", seed_err)
     except Exception as err:
         conexion.rollback()
         raise RuntimeError(f"Error al inicializar las tablas de la base de datos: {err}") from err
@@ -321,4 +328,4 @@ if __name__ == "__main__":
     conn = abrir_conexion()
     motor_activo = "SQLite (contingencia local)" if isinstance(conn, sqlite3.Connection) else "MySQL (WampServer)"
     conn.close()
-    print(f"Base de datos preparada correctamente con el modelo UML completo. [Motor: {motor_activo}]")
+    print(f"Base de datos preparada correctamente con el modelo UML completo y datos semilla. [Motor: {motor_activo}]")

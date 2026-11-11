@@ -105,7 +105,13 @@ def ejecutar_demostracion() -> None:
 
 
 def main() -> None:
-    if "--demo" in sys.argv or "-d" in sys.argv:
+    if "--seed" in sys.argv or "-s" in sys.argv:
+        from src.persistencia.crear_bd import crear_tablas
+        from src.persistencia.semillas import poblar_semillas
+        crear_tablas()
+        res = poblar_semillas(forzar=True)
+        print(f"Resultado de población de semillas: {res['mensaje']}")
+    elif "--demo" in sys.argv or "-d" in sys.argv:
         ejecutar_demostracion()
     else:
         iniciar_interfaz_crud()
