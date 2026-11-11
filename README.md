@@ -101,6 +101,19 @@ Permite validar en pocos segundos todas las inserciones, relaciones de base de d
 python main.py --demo
 ```
 
+### C. Carga y Población de Datos Semilla:
+Permite poblar automáticamente todas las 11 tablas del modelo UML con datos realistas (usuarios, empleados, departamentos, proyectos, horas, mediciones climáticas y liquidaciones en divisas):
+```bash
+python main.py --seed
+```
+O ejecutando el módulo de persistencia:
+```bash
+cd ecotech
+python -m src.persistencia.semillas --forzar
+cd ..
+```
+*(También se dispone del script SQL estándar en `ecotech/src/persistencia/semillas.sql` para importación directa en phpMyAdmin).*
+
 ---
 
 ## 5. Ejecución de la Suite de Pruebas Automatizadas
