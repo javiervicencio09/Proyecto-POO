@@ -17,7 +17,7 @@ from src.seguridad.validador import hashear_contrasena
 logger = logging.getLogger("ecotech.semillas")
 
 # Credenciales de prueba estándar para el sistema:
-# admin@ecotech.cl        -> AdminPassword123!
+# admin@ecotech.cl        -> Admin2026*
 # gerencia@ecotech.cl     -> Gerente2026*
 # ana.perez@ecotech.cl    -> AnaPerez2026*
 # carlos.ruiz@ecotech.cl  -> CarlosRuiz2026*
@@ -28,7 +28,7 @@ USUARIOS_SEMILLA = [
     (
         "Administrador General",
         "admin@ecotech.cl",
-        hashear_contrasena("AdminPassword123!"),
+        hashear_contrasena("Admin2026*"),
         "ADMIN",
         "SUPERADMIN",
     ),
@@ -590,3 +590,4 @@ if __name__ == "__main__":
     else:
         print(f"\n[INFO] {res['mensaje']}")
         print("Para forzar la re-inserción de registros, use: python -m src.persistencia.semillas --forzar")
+

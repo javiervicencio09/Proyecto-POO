@@ -10,7 +10,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- ------------------------------------------------------------------------------
 -- 1. TABLA: usuario (Contraseñas con Hashing Seguro SHA-256)
 -- Claves en texto plano:
--- admin@ecotech.cl        -> AdminPassword123!
+-- admin@ecotech.cl        -> Admin2026*
 -- gerencia@ecotech.cl     -> Gerente2026*
 -- ana.perez@ecotech.cl    -> AnaPerez2026*
 -- carlos.ruiz@ecotech.cl  -> CarlosRuiz2026*
@@ -18,7 +18,7 @@ SET FOREIGN_KEY_CHECKS = 0;
 -- sofia.castro@ecotech.cl -> SofiaCastro2026*
 -- ------------------------------------------------------------------------------
 INSERT INTO usuario (id_usuario, nombre, correo, contrasena_hash, tipo_usuario) VALUES
-(1, 'Administrador General', 'admin@ecotech.cl', '83fcd3f7129b081faeb043dc07262e63fea599da4be6869a7a1780f7084a15b4', 'ADMIN'),
+(1, 'Administrador General', 'admin@ecotech.cl', '8d90ed647b948fa80c3c9bbf5316c78f151723f52fb9d6101f818af8afff69ec', 'ADMIN'),
 (2, 'Gerencia de Operaciones', 'gerencia@ecotech.cl', '50a7c462725fa848d795fefab314ba1a681c2f9d6ad44dbb8a4f08e4860b2eb8', 'ADMIN'),
 (3, 'Ana Pérez', 'ana.perez@ecotech.cl', '3cb49a43a0d58beea26e47b355c2d33ce74b966cf17f779183cfbb94966cb17b', 'USUARIO'),
 (4, 'Carlos Ruiz', 'carlos.ruiz@ecotech.cl', 'f3555543d81b95388c3f4e1f7d54203e0078103c80cf2e26090a21a5a7ad8a9d', 'USUARIO'),
@@ -129,3 +129,4 @@ ON DUPLICATE KEY UPDATE monto_convertido=VALUES(monto_convertido);
 
 -- Reactivar verificación de claves foráneas
 SET FOREIGN_KEY_CHECKS = 1;
+
